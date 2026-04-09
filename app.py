@@ -239,10 +239,8 @@ def download_csv(job_id):
     return send_file(mem, mimetype='text/csv', as_attachment=True, download_name=filename)
 
 if __name__ == '__main__':
-    import site, os
-    # Exclude all site-packages dirs from the reloader so Playwright's internal
-    # files don't trigger a server restart mid-scrape (causes EPIPE broken pipe).
-    exclude_dirs = site.getsitepackages() + [site.getusersitepackages()]
-    exclude_patterns = [os.path.join(d, '*') for d in exclude_dirs]
-    app.run(host='0.0.0.0', port=5000, debug=True, exclude_patterns=exclude_patterns)
-
+    # We explicitly disable the Werkzeug reloader `use_reloader=False`.
+    # Windows Store Python installations use a virtual filesystem that natively
+    # reports phantom timestamp shifts on Standard Library files (like asyncio),
+    # causing Flask to constantly restart mid-scrape and throw EPIPE broken pipe errors.
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
