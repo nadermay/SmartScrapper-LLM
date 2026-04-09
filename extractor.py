@@ -176,3 +176,25 @@ def extract_location(soup: BeautifulSoup) -> Optional[str]:
         return " ".join(match.group(0).split())
 
     return None
+
+def clean_text_for_llm(soup: BeautifulSoup) -> str:
+    """
+    Cleans a BeautifulSoup object to extract text suitable for an LLM context window.
+    Removes headers, footers, scripts, and standardizes spacing.
+    """
+    if not soup:
+        return ""
+        
+    # Copy soup to avoid modifying the original if it's used elsewhere
+    import copy
+    soup_copy = copy.copy(soup)
+    
+    # Remove unwanted tags that clutter the text with navigation/formatting noise
+    for element in soup_copy(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+        element.extract()
+        
+    text = soup_copy.get_text(separator=' ', strip=True)
+    # Collapse multiple whitespace characters into a single space
+    clean_text = re.sub(r'\s+', ' ', text)
+    
+    return clean_text

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wise Local - ProspectIQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <img src="/static/img/logo.png" alt="Wise Local Logo" class="logo-img">
+            <span class="logo-text">ProspectIQ</span>
+        </div>
+        <div class="navbar-right">
+            <div class="quick-search">
+                <input type="text" id="quick-search-input" name="quick-search" autocomplete="organization" placeholder="🔍 Quick Search Company…" class="text-input quick-search-input">
+            </div>
+            <button id="btn-settings" class="btn btn-secondary btn-sm" style="background: transparent;">⚙️ Agency Profile</button>
+            <div id="ollama-status" class="status-indicator">
+                <span class="dot"></span> Llama3 Status: <span class="status-text">Checking…</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" id="main-content">
+        <!-- Dashboard Navigation -->
+        <nav class="tabs">
+            <button class="tab active" data-target="upload-view">Start Scraping</button>
+            <button class="tab" data-target="run-view">Live Progress</button>
+            <button class="tab" data-target="results-view">History & Results</button>
+        </nav>
+
+        <!-- VIEW 1: Upload -->
+        <section id="upload-view" class="view active-view">
+            <div class="hero">
+                <h1>Turn Company Names Into Qualified Leads</h1>
+                <p>Powered by local AI. Your data never leaves the network.</p>
+            </div>
+            
+            <div class="card upload-card">
+                <form id="upload-form">
+                    <div class="drop-zone" id="drop-zone">
+                        <span class="drop-icon">📁</span>
+                        <p>Drag & Drop a .csv file here or <span class="text-accent">browse</span></p>
+                        <input type="file" id="csv-file" accept=".csv" required hidden>
+                        <p id="file-name" class="text-sm text-muted mt-1"></p>
+                    </div>
+
+                    <div class="settings">
+                        <div class="setting-group">
+                            <label for="thread-count">Scraping Speed (Concurrent Threads)</label>
+                            <input type="range" id="thread-count" name="thread-count" min="1" max="15" value="5">
+                            <span id="thread-display" class="text-sm text-accent font-500">5 Threads</span>
+                        </div>
+                        <div class="setting-group toggle-group" style="padding-top: 1rem;">
+                            <label class="toggle-label" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                <span style="font-weight: 500;">Enable AI Enrichment & Analysis</span>
+                                <div class="switch">
+                                    <input type="checkbox" id="use-ai" checked>
+                                    <span class="slider round"></span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Launch Batch Pipeline &rarr;</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VIEW 2: Live Progress -->
+        <section id="run-view" class="view">
+            <div class="progress-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h2 style="margin-bottom:0;">Pipeline Progress</h2>
+                    <div id="execution-controls" style="display: none; gap: 0.5rem;">
+                        <button id="btn-pause" class="btn btn-secondary btn-sm">⏸ Pause</button>
+                        <button id="btn-resume" class="btn btn-primary btn-sm" style="display:none">▶️ Resume</button>
+                        <button id="btn-stop" class="btn btn-danger btn-sm">🛑 Stop</button>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <p class="progress-text" id="progress-text" aria-live="polite">Awaiting job...</p>
+            </div>
+
+            <div class="live-dashboard">
+                <div class="terminal">
+                    <div class="terminal-header">Real-time Extractor Logs</div>
+                    <div class="terminal-body" id="log-feed"></div>
+                </div>
+                
+                <div class="results-preview">
+                    <div class="preview-header">Live Prospect Discoveries</div>
+                    <div class="preview-feed" id="preview-feed">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: Results -->
+        <section id="results-view" class="view">
+            <div class="results-header">
+                <h2>Pipeline Results & History</h2>
+                <div class="job-selector">
+                    <select id="job-select">
+                        <option value="">Loading previous jobs...</option>
+                    </select>
+                    <input type="text" id="global-search" placeholder="🔍 Global Search (Names, Emails, Niches...)" class="retry-input" style="flex: 1; max-width: 400px; height: 38px;">
+                    <button id="download-btn" class="btn btn-secondary" disabled>⬇ Export to CSV</button>
+                    <button id="delete-job-btn" class="btn btn-danger" disabled title="Delete this batch and all its leads">🗑️ Delete Batch</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table" id="results-table">
+                    <thead>
+                        <tr>
+                            <th>Prospect</th>
+                            <th>Niche Analysis</th>
+                            <th>Direct Contact Info</th>
+                            <th>Identified Decision Maker</th>
+                            <th>Strategic Pitch Angle</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-backdrop" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="settings-modal-title">Agency Profile</h2>
+                <button class="close-btn" id="close-settings" aria-label="Close Agency Profile settings">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label for="agency-name">Agency Name / Your Name</label>
+                    <input type="text" id="agency-name" name="agency-name" autocomplete="organization" class="text-input" placeholder="e.g. Apex Marketing">
+                </div>
+                <div class="setting-group">
+                    <label for="agency-services">Core Services / Value Prop</label>
+                    <textarea id="agency-services" name="agency-services" autocomplete="off" class="text-input" rows="3" placeholder="e.g. B2B Lead Generation and SEO"></textarea>
+                </div>
+                <div class="setting-group">
+                    <label for="agency-cta">Call to Action (CTA)</label>
+                    <input type="text" id="agency-cta" name="agency-cta" autocomplete="off" class="text-input" placeholder="e.g. Open to a 5-minute chat this week?">
+                </div>
+                <button id="save-settings-btn" class="btn btn-primary btn-block">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Search Ad-Hoc Modal -->
+    <div id="quick-search-modal" class="modal-backdrop" style="display:none;">
+        <div class="modal" style="width: 550px;">
+            <div class="modal-header">
+                <h2 id="qs-title" style="margin:0; font-size:1.25rem;">Expert Intel</h2>
+                <button class="close-btn" id="close-qs" aria-label="Close Expert Intel">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="qs-loading" style="text-align:center; padding: 2rem 0;">
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Deploying crawler &amp; Llama 3 analysis…</p>
+                    <div class="spinner"></div>
+                </div>
+                
+                <div id="qs-result" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 id="qs-company" style="font-size: 1.25rem; font-weight:600; margin-bottom:0.25rem;">Company Name</h3>
+                            <a id="qs-website" href="#" target="_blank" class="text-accent text-sm" style="text-decoration:none;">website.com ↗</a>
+                        </div>
+                        <span id="qs-decision-maker" style="display:inline-block; padding:0.25rem 0.6rem; background:rgba(255,255,255,0.05); border-radius:4px; font-size:0.875rem;">Decision Maker</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.25rem;">
+                        <strong style="color: var(--text-primary); font-size: 0.95rem;">Niche: </strong> <span id="qs-niche" class="text-muted text-sm">Niche</span>
+                    </div>
+                    
+                    <div class="setting-group" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--accent); margin-bottom: 1.25rem;">
+                        <h4 style="margin-top: 0; margin-bottom: 0.25rem; font-size: 0.95rem; color:var(--text-primary);">Summary</h4>
+                        <p id="qs-summary" class="text-muted text-sm" style="line-height:1.5; margin:0;">Summary text</p>
+                    </div>
+
+                    <div class="setting-group" style="background: rgba(243,156,18,0.05); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--warning); margin-bottom: 1.5rem;">
+                        <h4 style="margin-top: 0; margin-bottom: 0.25rem; font-size: 0.95rem; color:var(--warning);">🔥 Pitch Angle / Gap</h4>
+                        <p id="qs-pitch-angle" class="text-muted text-sm" style="line-height:1.5; margin:0;">Pitch Angle text</p>
+                    </div>
+                    
+                    <button id="qs-draft-btn" class="btn btn-primary btn-block">✉️ Apply Pitch Deck (Draft Email)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outreach Slide Panel -->
+    <div id="outreach-panel" class="slide-panel">
+        <div class="panel-header">
+            <h3 style="margin:0;">✉️ The Pitch Deck</h3>
+            <button class="close-btn" id="close-panel" aria-label="Close Pitch Deck panel">×</button>
+        </div>
+        <div class="panel-body">
+            <p id="pitch-lead-name" style="font-size: 1.15rem; font-weight: 600; margin-bottom: 0.25rem;"></p>
+            <p id="pitch-lead-contact" class="text-muted text-sm" style="margin-bottom: 1.5rem;"></p>
+            
+            <div id="draft-loading" style="display:none; text-align:center; padding: 3rem 0;">
+                <p>Generating high-conversion outreach…</p>
+                <div class="spinner"></div>
+            </div>
+            
+            <div id="draft-result" style="display:none;">
+                <textarea id="drafted-email" rows="14" class="text-input" style="font-size: 0.95rem; margin-bottom: 1rem; line-height: 1.5; resize: vertical;"></textarea>
+                
+                <div style="display:flex; gap: 0.5rem;">
+                    <button id="copy-draft-btn" class="btn btn-secondary" style="flex:1;">📋 Copy</button>
+                    <a id="mailto-btn" href="#" class="btn btn-primary" style="flex:1; text-decoration: none;">↗ Gmail</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ __pycache__/
 .agents/
 results.json
 *.log
-# Enriched data files (optional to ignore, but usually kept local for large datasets)
-# enriched_prospects.csv
-# optimized_test_30.csv
+# Enriched data files
+enriched_prospects.csv
+optimized_test_30.csv
+doc/

@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "firecrawl-scrape": {
+      "source": "firecrawl/cli",
+      "sourceType": "github",
+      "computedHash": "c3d39dde7d86175e234c4315a5bff572c0dfe9a28b038ecfdc5c8d3151ff623d"
+    },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
